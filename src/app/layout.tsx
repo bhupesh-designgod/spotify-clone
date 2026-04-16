@@ -3,14 +3,13 @@ import { Inter } from 'next/font/google';
 import './globals.css';
 import Sidebar from '@/components/Sidebar';
 import PlayerBar from '@/components/PlayerBar';
-import AudioPlayer from '@/components/AudioPlayer';
+import YouTubePlayer from '@/components/YouTubePlayer';
 import AuthButton from '@/components/AuthButton';
 import Providers from '@/components/Providers';
 import LyricsOverlay from '@/components/LyricsOverlay';
 import MobileNav from '@/components/MobileNav';
 import MobileHeader from '@/components/MobileHeader';
 import NowPlayingScreen from '@/components/NowPlayingScreen';
-import MediaSessionController from '@/components/MediaSessionController';
 import { Toaster } from '@/components/ui/sonner';
 
 const inter = Inter({ subsets: ['latin'] });
@@ -55,8 +54,7 @@ export default function RootLayout({
           <MobileNav />
           <NowPlayingScreen />
           <LyricsOverlay />
-          <AudioPlayer />
-          <MediaSessionController />
+          <YouTubePlayer />
           <Toaster />
         </Providers>
       </body>
