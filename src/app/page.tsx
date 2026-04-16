@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { useEffect, useState, useCallback } from 'react';
 import { useSession } from 'next-auth/react';
-import { Search, Music, Headphones, Radio, Disc3, Clock, Play } from 'lucide-react';
+import { Search, Music, Clock, Play } from 'lucide-react';
 import { usePlayerStore, Track } from '@/hooks/usePlayerStore';
 
 const genres = [
@@ -153,47 +153,39 @@ export default function Home() {
         </p>
       </div>
 
-      {/* Quick Start Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-        <Link href="/search" className="flex items-center bg-white/5 hover:bg-white/10 transition-colors duration-200 rounded overflow-hidden group">
-          <div className="w-16 h-16 sm:w-20 sm:h-20 flex-shrink-0 bg-gradient-to-br from-green-400 to-green-600 flex items-center justify-center shadow-lg">
-            <Search size={28} className="text-white" />
-          </div>
-          <span className="text-white font-semibold px-4 group-hover:underline">Search Songs</span>
-        </Link>
+      {/* Quick Start Cards — only shown to signed-in users; signed-out users
+          get a single Search CTA so the page doesn't look broken. */}
+      {session ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+          <Link href="/search" className="flex items-center bg-white/5 hover:bg-white/10 transition-colors duration-200 rounded overflow-hidden group">
+            <div className="w-16 h-16 sm:w-20 sm:h-20 flex-shrink-0 bg-gradient-to-br from-green-400 to-green-600 flex items-center justify-center shadow-lg">
+              <Search size={28} className="text-white" />
+            </div>
+            <span className="text-white font-semibold px-4 group-hover:underline">Search Songs</span>
+          </Link>
 
-        {session ? (
           <Link href="/liked" className="flex items-center bg-white/5 hover:bg-white/10 transition-colors duration-200 rounded overflow-hidden group">
             <div className="w-16 h-16 sm:w-20 sm:h-20 flex-shrink-0 bg-gradient-to-br from-purple-500 to-indigo-600 flex items-center justify-center shadow-lg">
               <Music size={28} className="text-white" />
             </div>
             <span className="text-white font-semibold px-4 group-hover:underline">Liked Songs</span>
           </Link>
-        ) : (
-          <div className="flex items-center bg-white/5 hover:bg-white/10 transition-colors duration-200 rounded overflow-hidden cursor-pointer">
-            <div className="w-16 h-16 sm:w-20 sm:h-20 flex-shrink-0 bg-gradient-to-br from-purple-500 to-indigo-600 flex items-center justify-center shadow-lg">
-              <Music size={28} className="text-white" />
-            </div>
-            <span className="text-white font-semibold px-4">Liked Songs</span>
-          </div>
-        )}
 
-        {session ? (
           <Link href="/history" className="flex items-center bg-white/5 hover:bg-white/10 transition-colors duration-200 rounded overflow-hidden group">
             <div className="w-16 h-16 sm:w-20 sm:h-20 flex-shrink-0 bg-gradient-to-br from-blue-500 to-cyan-600 flex items-center justify-center shadow-lg">
               <Clock size={28} className="text-white" />
             </div>
             <span className="text-white font-semibold px-4 group-hover:underline">Recently Played</span>
           </Link>
-        ) : (
-          <div className="flex items-center bg-white/5 hover:bg-white/10 transition-colors duration-200 rounded overflow-hidden cursor-pointer">
-            <div className="w-16 h-16 sm:w-20 sm:h-20 flex-shrink-0 bg-gradient-to-br from-blue-500 to-cyan-600 flex items-center justify-center shadow-lg">
-              <Headphones size={28} className="text-white" />
-            </div>
-            <span className="text-white font-semibold px-4">Daily Mix</span>
+        </div>
+      ) : (
+        <Link href="/search" className="flex items-center bg-white/5 hover:bg-white/10 transition-colors duration-200 rounded overflow-hidden group max-w-md">
+          <div className="w-16 h-16 sm:w-20 sm:h-20 flex-shrink-0 bg-gradient-to-br from-green-400 to-green-600 flex items-center justify-center shadow-lg">
+            <Search size={28} className="text-white" />
           </div>
-        )}
-      </div>
+          <span className="text-white font-semibold px-4 group-hover:underline">Search Songs</span>
+        </Link>
+      )}
 
       {/* Personalized Sections (logged in only) */}
       {session && recentHistory.length > 0 && (

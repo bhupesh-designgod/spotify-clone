@@ -96,8 +96,17 @@ export default function PlayerBar() {
       </div>
 
       <div className="h-16 md:h-[90px] flex items-center justify-between px-2 sm:px-4">
-        {/* Track Info */}
-        <div className="flex items-center gap-2 sm:gap-3 flex-1 md:w-[30%] md:flex-initial md:min-w-[180px] min-w-0">
+        {/* Track Info — tap on mobile to open Now Playing fullscreen */}
+        <div
+          className="flex items-center gap-2 sm:gap-3 flex-1 md:w-[30%] md:flex-initial md:min-w-[180px] min-w-0 md:cursor-default cursor-pointer select-none"
+          onClick={(e) => {
+            // Desktop: do nothing. Mobile: expand to Now Playing screen.
+            if (window.matchMedia('(min-width: 768px)').matches) return;
+            // Avoid intercepting the Like button's own clicks.
+            if ((e.target as HTMLElement).closest('button')) return;
+            (window as any)._toggleNowPlaying?.();
+          }}
+        >
           {currentTrack.albumArt ? (
             <img src={currentTrack.albumArt} alt={currentTrack.name} className="w-11 h-11 md:w-14 md:h-14 rounded shadow-lg object-cover flex-shrink-0" />
           ) : (
@@ -109,7 +118,7 @@ export default function PlayerBar() {
             {error && <span className="text-xs text-red-400 truncate">{error}</span>}
           </div>
           {session && (
-            <button onClick={() => toggleLike(currentTrack)} className="ml-1 sm:ml-2 flex-shrink-0 p-1">
+            <button onClick={(e) => { e.stopPropagation(); toggleLike(currentTrack); }} className="ml-1 sm:ml-2 flex-shrink-0 p-1">
               <Heart size={18} className={liked ? 'text-green-500 fill-green-500' : 'text-neutral-400 hover:text-white'} />
             </button>
           )}

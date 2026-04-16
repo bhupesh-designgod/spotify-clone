@@ -8,6 +8,8 @@ import AuthButton from '@/components/AuthButton';
 import Providers from '@/components/Providers';
 import LyricsOverlay from '@/components/LyricsOverlay';
 import MobileNav from '@/components/MobileNav';
+import MobileHeader from '@/components/MobileHeader';
+import NowPlayingScreen from '@/components/NowPlayingScreen';
 import { Toaster } from '@/components/ui/sonner';
 
 const inter = Inter({ subsets: ['latin'] });
@@ -37,17 +39,20 @@ export default function RootLayout({
           <div className="flex flex-1 overflow-hidden">
             <Sidebar />
             <div className="flex-1 flex flex-col overflow-hidden">
-              {/* Top bar with auth */}
-              <div className="flex items-center justify-end px-4 sm:px-6 py-3 bg-transparent absolute top-0 right-0 z-40">
+              {/* Mobile sticky header */}
+              <MobileHeader />
+              {/* Desktop top bar with auth */}
+              <div className="hidden md:flex items-center justify-end px-6 py-3 bg-transparent absolute top-0 right-0 z-40">
                 <AuthButton />
               </div>
-              <main className="flex-1 overflow-y-auto bg-gradient-to-b from-neutral-900 to-black p-4 sm:p-6 pt-14 pb-4">
+              <main className="flex-1 overflow-y-auto bg-gradient-to-b from-neutral-900 to-black p-4 sm:p-6 pt-4 sm:pt-14 pb-4">
                 {children}
               </main>
             </div>
           </div>
           <PlayerBar />
           <MobileNav />
+          <NowPlayingScreen />
           <LyricsOverlay />
           <YouTubePlayer />
           <Toaster />
