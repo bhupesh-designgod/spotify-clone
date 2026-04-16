@@ -34,7 +34,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" className="dark">
-      <body className={`${inter.className} bg-black text-foreground flex h-screen overflow-hidden flex-col`}>
+      <body className={`${inter.className} bg-black text-foreground flex h-[100dvh] overflow-hidden flex-col`}>
         <Providers>
           <div className="flex flex-1 overflow-hidden">
             <Sidebar />

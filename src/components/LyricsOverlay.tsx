@@ -72,7 +72,7 @@ export default function LyricsOverlay() {
   if (!show) return null;
 
   return (
-    <div className="fixed inset-0 z-[999] bg-black/95 backdrop-blur-xl flex flex-col">
+    <div className="fixed inset-0 h-[100dvh] z-[999] bg-black/95 backdrop-blur-xl flex flex-col">
       <div className="flex items-center justify-between px-4 sm:px-8 py-4 sm:py-5">
         <div className="flex items-center gap-3 sm:gap-4 min-w-0 flex-1">
           {currentTrack?.albumArt && <img src={currentTrack.albumArt} alt="" className="w-10 h-10 sm:w-12 sm:h-12 rounded shadow-lg flex-shrink-0" />}

@@ -73,7 +73,7 @@ export default function NowPlayingScreen() {
   const liked = isLiked(currentTrack.id);
 
   return (
-    <div className="md:hidden fixed inset-0 z-[998] bg-gradient-to-b from-neutral-800 via-neutral-900 to-black flex flex-col pb-[env(safe-area-inset-bottom)]">
+    <div className="md:hidden fixed inset-0 h-[100dvh] z-[998] bg-gradient-to-b from-neutral-800 via-neutral-900 to-black flex flex-col pb-[env(safe-area-inset-bottom)]">
       {/* Header */}
       <div className="flex items-center justify-between px-4 pt-3 pb-2 flex-shrink-0">
         <button
