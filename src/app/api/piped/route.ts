@@ -33,7 +33,7 @@ const INVIDIOUS_INSTANCES = [
   'https://inv.nadeko.net',
 ];
 
-const FETCH_TIMEOUT_MS = 6000;
+const FETCH_TIMEOUT_MS = 5000;
 
 async function tryFetch(url: string): Promise<any | null> {
   try {
@@ -46,16 +46,6 @@ async function tryFetch(url: string): Promise<any | null> {
   } catch {
     return null;
   }
-}
-
-// ---------- Piped attempts ----------
-
-async function pipedAttempt(fullPath: string): Promise<any | null> {
-  for (const instance of PIPED_INSTANCES) {
-    const data = await tryFetch(`${instance}${fullPath}`);
-    if (data) return data;
-  }
-  return null;
 }
 
 // ---------- Invidious -> Piped translators ----------
@@ -133,31 +123,77 @@ function invidiousStreamsToPipedResponse(d: any) {
   };
 }
 
-// ---------- Invidious attempts (per supported route) ----------
+// ---------- Combined upstream attempts ----------
 
-async function invidiousSearch(query: string): Promise<any | null> {
-  const qs = `q=${encodeURIComponent(query)}&type=video&sort=relevance`;
-  for (const instance of INVIDIOUS_INSTANCES) {
-    const data = await tryFetch(`${instance}/api/v1/search?${qs}`);
-    if (Array.isArray(data)) {
-      const items = data
-        .filter((item) => item?.type === 'video' && item.videoId)
-        .map(invidiousVideoToPipedSearchItem);
-      if (items.length) return { items };
-    }
-  }
-  return null;
+interface Attempt<T> {
+  url: string;
+  validate: (data: any) => T | null;
 }
 
-async function invidiousStreams(videoId: string): Promise<any | null> {
-  for (const instance of INVIDIOUS_INSTANCES) {
-    const data = await tryFetch(`${instance}/api/v1/videos/${videoId}`);
-    if (data && Array.isArray(data.adaptiveFormats)) {
-      const out = invidiousStreamsToPipedResponse(data);
-      if (out.audioStreams.length) return out;
+async function resolveStreams(videoId: string): Promise<any | null> {
+  const attempts: Attempt<any>[] = [
+    ...PIPED_INSTANCES.map((i) => ({
+      url: `${i}/streams/${videoId}`,
+      validate: (data: any) =>
+        data && Array.isArray(data.audioStreams) && data.audioStreams.length ? data : null,
+    })),
+    ...INVIDIOUS_INSTANCES.map((i) => ({
+      url: `${i}/api/v1/videos/${videoId}`,
+      validate: (data: any) => {
+        if (!data || !Array.isArray(data.adaptiveFormats)) return null;
+        const out = invidiousStreamsToPipedResponse(data);
+        return out.audioStreams.length ? out : null;
+      },
+    })),
+  ];
+  return raceAttempts(attempts);
+}
+
+async function resolveSearch(query: string): Promise<any | null> {
+  const pipedQs = new URLSearchParams({ q: query, filter: 'music_songs' }).toString();
+  const invQs = `q=${encodeURIComponent(query)}&type=video&sort=relevance`;
+  const attempts: Attempt<any>[] = [
+    ...PIPED_INSTANCES.map((i) => ({
+      url: `${i}/search?${pipedQs}`,
+      validate: (data: any) =>
+        data && Array.isArray(data.items) && data.items.length ? data : null,
+    })),
+    ...INVIDIOUS_INSTANCES.map((i) => ({
+      url: `${i}/api/v1/search?${invQs}`,
+      validate: (data: any) => {
+        if (!Array.isArray(data)) return null;
+        const items = data
+          .filter((item: any) => item?.type === 'video' && item.videoId)
+          .map(invidiousVideoToPipedSearchItem);
+        return items.length ? { items } : null;
+      },
+    })),
+  ];
+  return raceAttempts(attempts);
+}
+
+async function raceAttempts<T>(attempts: Attempt<T>[]): Promise<T | null> {
+  return new Promise((resolve) => {
+    let settled = false;
+    let pending = attempts.length;
+    if (pending === 0) return resolve(null);
+    for (const a of attempts) {
+      tryFetch(a.url).then((data) => {
+        if (settled) return;
+        const v = data ? a.validate(data) : null;
+        if (v !== null) {
+          settled = true;
+          resolve(v);
+          return;
+        }
+        pending--;
+        if (pending === 0 && !settled) {
+          settled = true;
+          resolve(null);
+        }
+      });
     }
-  }
-  return null;
+  });
 }
 
 // ---------- Route handler ----------
@@ -170,25 +206,13 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: 'Missing "path" query param' }, { status: 400 });
   }
 
-  const otherParams = new URLSearchParams();
-  searchParams.forEach((value, key) => {
-    if (key !== 'path') otherParams.append(key, value);
-  });
-  const queryString = otherParams.toString();
-  const fullPath = `${path}${queryString ? `?${queryString}` : ''}`;
-
-  // 1) Try Piped first — fast when it's up.
-  const piped = await pipedAttempt(fullPath);
-  if (piped) return NextResponse.json(piped);
-
-  // 2) Fall back to Invidious for the two routes the client actually uses.
-  if (path === '/search') {
-    const q = searchParams.get('q') || '';
-    const data = await invidiousSearch(q);
-    if (data) return NextResponse.json(data);
-  } else if (path.startsWith('/streams/')) {
+  if (path.startsWith('/streams/')) {
     const videoId = path.slice('/streams/'.length);
-    const data = await invidiousStreams(videoId);
+    const data = await resolveStreams(videoId);
+    if (data) return NextResponse.json(data);
+  } else if (path === '/search') {
+    const q = searchParams.get('q') || '';
+    const data = await resolveSearch(q);
     if (data) return NextResponse.json(data);
   }
 
