@@ -25,6 +25,9 @@ export default function AudioPlayer() {
   // Identifies the in-flight stream-URL fetch so a fast track-change can
   // discard a stale resolution.
   const loadTokenRef = useRef(0);
+  // Tracks whether we've already swapped to the server-proxied fallback
+  // for the current videoId (so we don't loop forever on real failures).
+  const fallbackUsedRef = useRef<string | null>(null);
 
   const currentTrack = usePlayerStore((s) => s.currentTrack);
   const isPlaying = usePlayerStore((s) => s.isPlaying);
@@ -80,9 +83,26 @@ export default function AudioPlayer() {
       usePlayerStore.getState().nextTrack();
     };
     const onError = () => {
-      usePlayerStore.getState().setError('Playback failed. Try another track.');
-      usePlayerStore.getState().setIsLoading(false);
-      usePlayerStore.getState().setIsPlaying(false);
+      // First failure for this videoId -> swap to the server-side proxy.
+      // Many googlevideo URLs are IP-pinned to the upstream resolver, so the
+      // direct URL fails in the browser but a same-origin proxied stream
+      // (resolved by the Vercel function) usually works.
+      const state = usePlayerStore.getState();
+      const trackId = state.currentTrack?.videoId;
+      if (trackId && fallbackUsedRef.current !== trackId) {
+        fallbackUsedRef.current = trackId;
+        audio.src = `/api/stream/${trackId}`;
+        audio.load();
+        audio.play().catch(() => {
+          state.setError('Playback failed. Try another track.');
+          state.setIsLoading(false);
+          state.setIsPlaying(false);
+        });
+        return;
+      }
+      state.setError('Playback failed. Try another track.');
+      state.setIsLoading(false);
+      state.setIsPlaying(false);
     };
 
     audio.addEventListener('loadedmetadata', onLoadedMetadata);
@@ -111,6 +131,8 @@ export default function AudioPlayer() {
     const audio = audioRef.current;
     if (!audio || !videoId) return;
     const token = ++loadTokenRef.current;
+    // New track -> the fallback budget resets for this videoId.
+    fallbackUsedRef.current = null;
 
     usePlayerStore.getState().setIsLoading(true);
     usePlayerStore.getState().setError(null);
