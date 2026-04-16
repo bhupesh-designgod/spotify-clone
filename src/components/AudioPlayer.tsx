@@ -161,7 +161,8 @@ export default function AudioPlayer() {
       preload="auto"
       // playsInline is required by iOS so playback doesn't switch to fullscreen video UI.
       playsInline
-      crossOrigin="anonymous"
+      // Intentionally NO crossOrigin — googlevideo.com does not send CORS
+      // headers, and forcing CORS mode would block playback.
       className="sr-only"
     />
   );
