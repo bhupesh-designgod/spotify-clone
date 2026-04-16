@@ -3,7 +3,8 @@ import { Inter } from 'next/font/google';
 import './globals.css';
 import Sidebar from '@/components/Sidebar';
 import PlayerBar from '@/components/PlayerBar';
-import YouTubePlayer from '@/components/YouTubePlayer';
+import AudioPlayer from '@/components/AudioPlayer';
+import MediaSessionController from '@/components/MediaSessionController';
 import AuthButton from '@/components/AuthButton';
 import Providers from '@/components/Providers';
 import LyricsOverlay from '@/components/LyricsOverlay';
@@ -54,7 +55,8 @@ export default function RootLayout({
           <MobileNav />
           <NowPlayingScreen />
           <LyricsOverlay />
-          <YouTubePlayer />
+          <AudioPlayer />
+          <MediaSessionController />
           <Toaster />
         </Providers>
       </body>

@@ -4,19 +4,13 @@ import { useEffect } from 'react';
 import { usePlayerStore } from '@/hooks/usePlayerStore';
 
 /**
- * Wires the Web MediaSession API into our player store.
+ * Wires the Web MediaSession API into the player store.
  *
- * Effect on mobile:
- *  - Lock-screen / notification-shade media controls (track title, artist,
- *    album art, play/pause/skip).
- *  - AirPods / wired-headset / Bluetooth play/pause/skip buttons trigger
- *    the registered action handlers.
- *  - Helps the OS treat the page as actively playing media. Android Chrome
- *    will keep playback alive in the background. iOS Safari is more
- *    aggressive — playback often continues if the user does NOT lock the
- *    screen. When the screen IS locked, playback pauses on iOS (a Safari
- *    limitation for iframe-based players); the user can resume from the
- *    lock-screen control surface.
+ *  - Lock-screen / notification-shade media controls on Android & iOS.
+ *  - AirPods / Bluetooth / wired-headset play/pause/skip buttons.
+ *  - Signals to the OS that the page is actively playing media, which keeps
+ *    the HTML5 <audio> element alive when the screen locks or the user
+ *    switches apps.
  */
 export default function MediaSessionController() {
   const currentTrack = usePlayerStore((s) => s.currentTrack);
@@ -24,13 +18,13 @@ export default function MediaSessionController() {
   const progress = usePlayerStore((s) => s.progress);
   const duration = usePlayerStore((s) => s.duration);
 
-  // Register action handlers once; they read fresh state from the store.
+  // Register action handlers once.
   useEffect(() => {
     if (typeof navigator === 'undefined' || !('mediaSession' in navigator)) return;
     const ms = navigator.mediaSession;
 
     const safeSet = (action: MediaSessionAction, handler: MediaSessionActionHandler | null) => {
-      try { ms.setActionHandler(action, handler); } catch { /* unsupported on this browser */ }
+      try { ms.setActionHandler(action, handler); } catch { /* unsupported */ }
     };
 
     safeSet('play', () => {
@@ -60,13 +54,12 @@ export default function MediaSessionController() {
     });
 
     return () => {
-      // Clear handlers on unmount.
       (['play','pause','previoustrack','nexttrack','seekto','seekbackward','seekforward'] as MediaSessionAction[])
         .forEach((a) => safeSet(a, null));
     };
   }, []);
 
-  // Update metadata when the track changes.
+  // Update metadata when track changes.
   useEffect(() => {
     if (typeof navigator === 'undefined' || !('mediaSession' in navigator)) return;
     if (!currentTrack) {
@@ -88,13 +81,13 @@ export default function MediaSessionController() {
     });
   }, [currentTrack]);
 
-  // Reflect playback state.
+  // Reflect playback state for the OS lock-screen UI.
   useEffect(() => {
     if (typeof navigator === 'undefined' || !('mediaSession' in navigator)) return;
     navigator.mediaSession.playbackState = isPlaying ? 'playing' : 'paused';
   }, [isPlaying]);
 
-  // Update the OS-side position so the lock-screen scrubber tracks playback.
+  // Update position for the lock-screen scrubber.
   useEffect(() => {
     if (typeof navigator === 'undefined' || !('mediaSession' in navigator)) return;
     if (typeof navigator.mediaSession.setPositionState !== 'function') return;
@@ -105,7 +98,7 @@ export default function MediaSessionController() {
         position: Math.min(progress, duration),
         playbackRate: 1,
       });
-    } catch { /* invalid state — ignore */ }
+    } catch { /* ignore invalid state */ }
   }, [progress, duration]);
 
   return null;
