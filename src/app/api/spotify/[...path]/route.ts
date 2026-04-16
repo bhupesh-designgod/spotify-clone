@@ -9,7 +9,7 @@ export async function GET(
     const { path } = await params;
     const spotifyPath = path.join('/');
     const searchParams = request.nextUrl.searchParams.toString();
-    const url = \`https://api.spotify.com/v1/\${spotifyPath}\${searchParams ? \`?\${searchParams}\` : ''}\`;
+    const url = `https://api.spotify.com/v1/${spotifyPath}${searchParams ? `?${searchParams}` : ''}`;
 
     let token: string;
     try {
@@ -26,7 +26,7 @@ export async function GET(
 
     const response = await fetch(url, {
       headers: {
-        Authorization: \`Bearer \${token}\`,
+        Authorization: `Bearer ${token}`,
       },
     });
 
