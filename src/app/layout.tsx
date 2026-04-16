@@ -10,6 +10,7 @@ import LyricsOverlay from '@/components/LyricsOverlay';
 import MobileNav from '@/components/MobileNav';
 import MobileHeader from '@/components/MobileHeader';
 import NowPlayingScreen from '@/components/NowPlayingScreen';
+import MediaSessionController from '@/components/MediaSessionController';
 import { Toaster } from '@/components/ui/sonner';
 
 const inter = Inter({ subsets: ['latin'] });
@@ -55,6 +56,7 @@ export default function RootLayout({
           <NowPlayingScreen />
           <LyricsOverlay />
           <YouTubePlayer />
+          <MediaSessionController />
           <Toaster />
         </Providers>
       </body>
