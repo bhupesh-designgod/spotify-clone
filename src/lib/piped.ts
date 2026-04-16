@@ -73,14 +73,25 @@ async function pipedFetch(path: string, params?: Record<string, string>): Promis
   return res.json();
 }
 
+/**
+ * Rewrite Piped's proxied thumbnail URL to the direct YouTube CDN URL.
+ * Piped instances expose thumbnails through `pipedproxy.*` which goes down with
+ * the instance — i.ytimg.com is served directly by Google and is reliable.
+ */
+function ytThumb(item: any): string {
+  const videoId: string | undefined = item?.url?.replace?.('/watch?v=', '');
+  if (videoId) return `https://i.ytimg.com/vi/${videoId}/mqdefault.jpg`;
+  return item?.thumbnail || '';
+}
+
 export async function searchPiped(query: string): Promise<PipedSearchItem[]> {
   const data = await pipedFetch('/search', {
     q: query,
     filter: 'music_songs',
   });
-  const items: PipedSearchItem[] = (data.items || []).filter(
-    (item: any) => item.type === 'stream' && !item.isShort
-  );
+  const items: PipedSearchItem[] = (data.items || [])
+    .filter((item: any) => item.type === 'stream' && !item.isShort)
+    .map((item: any) => ({ ...item, thumbnail: ytThumb(item) }));
   return items;
 }
 

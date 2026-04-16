@@ -1,9 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 const PIPED_INSTANCES = [
-  'https://api.piped.private.coffee',
-  'https://pipedapi.kavin.rocks',
+  'https://pipedapi.in.projectsegfau.lt',
   'https://pipedapi.adminforge.de',
+  'https://pipedapi.kavin.rocks',
+  'https://api.piped.private.coffee',
+  'https://pipedapi.leptons.xyz',
+  'https://pipedapi.smnz.de',
+  'https://pipedapi.r4fo.com',
 ];
 
 export async function GET(request: NextRequest) {
