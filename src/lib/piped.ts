@@ -103,21 +103,23 @@ export async function getStreamUrl(videoId: string): Promise<string | null> {
       return null;
     }
 
-    // Filter audio-only streams and pick highest bitrate
     const audioOnly = data.audioStreams.filter(
       (s) => !s.videoOnly && s.mimeType?.startsWith('audio/')
     );
 
-    if (audioOnly.length === 0) {
-      const best = data.audioStreams.reduce((prev, curr) =>
-        curr.bitrate > prev.bitrate ? curr : prev
-      );
-      return best.url;
-    }
+    const candidates = audioOnly.length > 0 ? audioOnly : data.audioStreams;
 
-    const best = audioOnly.reduce((prev, curr) =>
-      curr.bitrate > prev.bitrate ? curr : prev
-    );
+    // iOS Safari can't play webm/opus — prefer mp4/m4a (AAC) for cross-browser
+    // playback in <audio> elements. Within each format group, pick highest
+    // bitrate.
+    const score = (s: PipedAudioStream) => {
+      let formatScore = 0;
+      const mt = (s.mimeType || '').toLowerCase();
+      if (mt.includes('mp4') || mt.includes('m4a') || mt.includes('aac')) formatScore = 2;
+      else if (mt.includes('webm') || mt.includes('opus')) formatScore = 1;
+      return formatScore * 1_000_000 + (s.bitrate || 0);
+    };
+    const best = candidates.reduce((prev, curr) => (score(curr) > score(prev) ? curr : prev));
     return best.url;
   } catch (error) {
     console.error('Failed to get stream URL:', error);
