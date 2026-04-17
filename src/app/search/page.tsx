@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { Search as SearchIcon, Play, Pause, Loader2, Heart, MoreHorizontal } from 'lucide-react';
 import { usePlayerStore, Track } from '@/hooks/usePlayerStore';
-import { searchPiped, PipedSearchItem } from '@/lib/piped';
+import { searchJioSaavn } from '@/lib/jiosaavn';
 import { useLikedSongs } from '@/hooks/useLikedSongs';
 import { Skeleton } from '@/components/ui/skeleton';
 import TrackContextMenu from '@/components/TrackContextMenu';
@@ -13,17 +13,6 @@ function formatDuration(seconds: number) {
   const m = Math.floor(seconds / 60);
   const s = Math.floor(seconds % 60);
   return `${m}:${s < 10 ? '0' : ''}${s}`;
-}
-
-function pipedItemToTrack(item: PipedSearchItem): Track {
-  return {
-    id: item.url,
-    name: item.title,
-    artist: item.uploaderName?.replace(' - Topic', '') || 'Unknown',
-    durationMs: item.duration * 1000,
-    albumArt: item.thumbnail,
-    videoId: item.url.replace('/watch?v=', ''),
-  };
 }
 
 export default function SearchPage() {
@@ -55,9 +44,9 @@ export default function SearchPage() {
       setLoading(true);
       setError(null);
       try {
-        const items = await searchPiped(debouncedQuery);
+        const tracks = await searchJioSaavn(debouncedQuery);
         if (cancelled) return;
-        setResults(items.map(pipedItemToTrack));
+        setResults(tracks);
       } catch (e: any) {
         if (cancelled) return;
         setError(e.message || 'Search failed. Try again.');

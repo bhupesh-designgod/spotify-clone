@@ -55,7 +55,7 @@ export function useLikedSongs(trackIds?: string[]) {
             track_name: track.name,
             track_artist: track.artist,
             track_album_art: track.albumArt,
-            track_video_id: track.videoId || '',
+            track_video_id: track.streamUrl || '',
             track_duration_ms: track.durationMs,
           }),
         });

@@ -76,7 +76,7 @@ export default function TrackContextMenu({ track, x, y, onClose }: Props) {
           track_name: track.name,
           track_artist: track.artist,
           track_album_art: track.albumArt,
-          track_video_id: track.videoId || '',
+          track_video_id: track.streamUrl || '',
           track_duration_ms: track.durationMs,
         }),
       });

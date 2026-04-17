@@ -52,7 +52,7 @@ function ptToTrack(pt: PlaylistTrack): Track {
     name: pt.track_name,
     artist: pt.track_artist,
     albumArt: pt.track_album_art,
-    videoId: pt.track_video_id,
+    streamUrl: pt.track_video_id,
     durationMs: pt.track_duration_ms,
   };
 }

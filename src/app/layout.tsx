@@ -3,7 +3,7 @@ import { Inter } from 'next/font/google';
 import './globals.css';
 import Sidebar from '@/components/Sidebar';
 import PlayerBar from '@/components/PlayerBar';
-import AudioPlayer from '@/components/AudioPlayer';
+import JioSaavnPlayer from '@/components/JioSaavnPlayer';
 import MediaSessionController from '@/components/MediaSessionController';
 import AuthButton from '@/components/AuthButton';
 import Providers from '@/components/Providers';
@@ -55,7 +55,7 @@ export default function RootLayout({
           <MobileNav />
           <NowPlayingScreen />
           <LyricsOverlay />
-          <AudioPlayer />
+          <JioSaavnPlayer />
           <MediaSessionController />
           <Toaster />
         </Providers>

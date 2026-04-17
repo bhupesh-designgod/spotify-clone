@@ -49,7 +49,7 @@ function toTrack(item: HistoryItem | LikedItem): Track {
     name: item.track_name,
     artist: item.track_artist,
     albumArt: item.track_album_art,
-    videoId: item.track_video_id,
+    streamUrl: item.track_video_id, // column stores the 320kbps stream URL
     durationMs: item.track_duration_ms,
   };
 }

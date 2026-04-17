@@ -11,16 +11,17 @@ declare global {
 }
 
 /**
- * HTML5 <audio> player for background-safe mobile playback.
+ * HTML5 <audio> player for JioSaavn 320kbps streams.
  *
- * Audio src is always /api/stream/{videoId} — our server-side proxy that
- * races Piped + Invidious and streams bytes through. This avoids IP-pinning
- * of direct googlevideo URLs and CORS issues entirely.
+ * JioSaavn's CDN serves AAC (.mp4) audio directly with proper Range support
+ * and no auth. We set audio.src = track.streamUrl and let the browser do the
+ * rest — which means background playback and lock-screen controls work on
+ * mobile for free.
  *
- * A window._ytPlayer shim is exposed so the existing store (seek, setVolume)
- * keeps working without any store changes.
+ * Exposes window._ytPlayer so usePlayerStore's seek()/setVolume() keep
+ * working without store-level changes.
  */
-export default function AudioPlayer() {
+export default function JioSaavnPlayer() {
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const loadTokenRef = useRef(0);
 
@@ -28,9 +29,9 @@ export default function AudioPlayer() {
   const isPlaying = usePlayerStore((s) => s.isPlaying);
   const volume = usePlayerStore((s) => s.volume);
 
-  const videoId = currentTrack?.videoId;
+  const streamUrl = currentTrack?.streamUrl;
 
-  // Expose shim so usePlayerStore's seek() and setVolume() keep working.
+  // Shim window._ytPlayer so existing store code keeps working.
   useEffect(() => {
     const audio = audioRef.current;
     if (!audio) return;
@@ -46,7 +47,7 @@ export default function AudioPlayer() {
     return () => { window._ytPlayerReady = false; };
   }, []);
 
-  // Wire native audio events to the player store.
+  // Wire <audio> events to the store.
   useEffect(() => {
     const audio = audioRef.current;
     if (!audio) return;
@@ -98,27 +99,26 @@ export default function AudioPlayer() {
     };
   }, []);
 
-  // Load a new stream when the track changes.
+  // Load the new stream when the track (and thus streamUrl) changes.
   useEffect(() => {
     const audio = audioRef.current;
-    if (!audio || !videoId) return;
+    if (!audio || !streamUrl) return;
     const token = ++loadTokenRef.current;
 
     usePlayerStore.getState().setIsLoading(true);
     usePlayerStore.getState().setError(null);
 
-    // Use the server-side proxy directly — no client-side URL resolution needed.
-    audio.src = `/api/stream/${videoId}`;
+    audio.src = streamUrl;
     audio.load();
     audio.play().catch(() => {
-      // Autoplay may be blocked before a user gesture; the user can tap play.
+      // Autoplay blocked before a user gesture — user can hit play.
       if (token === loadTokenRef.current) {
         usePlayerStore.getState().setIsLoading(false);
       }
     });
-  }, [videoId]);
+  }, [streamUrl]);
 
-  // Reflect store-driven play/pause onto the audio element.
+  // Reflect store-driven play/pause.
   useEffect(() => {
     const audio = audioRef.current;
     if (!audio || !audio.src) return;
@@ -129,7 +129,7 @@ export default function AudioPlayer() {
     }
   }, [isPlaying]);
 
-  // Apply volume changes.
+  // Apply volume.
   useEffect(() => {
     const audio = audioRef.current;
     if (!audio) return;

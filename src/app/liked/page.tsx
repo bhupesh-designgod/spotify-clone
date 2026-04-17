@@ -29,7 +29,7 @@ function likedSongToTrack(song: LikedSong): Track {
     name: song.track_name,
     artist: song.track_artist,
     albumArt: song.track_album_art,
-    videoId: song.track_video_id,
+    streamUrl: song.track_video_id,
     durationMs: song.track_duration_ms,
   };
 }

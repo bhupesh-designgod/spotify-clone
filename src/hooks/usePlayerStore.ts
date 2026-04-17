@@ -13,7 +13,11 @@ export interface Track {
   artist: string;
   durationMs: number;
   albumArt: string;
-  videoId?: string;
+  /**
+   * Direct 320kbps MP4 URL (from JioSaavn's CDN). Played as-is by an <audio> element.
+   * Persisted in the Supabase `track_video_id` column (kept for schema compat).
+   */
+  streamUrl?: string;
 }
 
 interface PlayerState {
@@ -54,7 +58,7 @@ function logPlay(track: Track) {
       track_name: track.name,
       track_artist: track.artist,
       track_album_art: track.albumArt,
-      track_video_id: track.videoId || '',
+      track_video_id: track.streamUrl || '',
       track_duration_ms: track.durationMs,
     }),
   }).catch(() => {}); // Silently fail if not logged in or error
