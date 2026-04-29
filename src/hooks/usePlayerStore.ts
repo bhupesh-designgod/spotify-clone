@@ -38,7 +38,9 @@ interface PlayerState {
   seek: (position: number) => void;
   setVolume: (volume: number) => void;
   addToQueue: (track: Track) => void;
+  playNext: (track: Track) => void;
   setQueue: (tracks: Track[], startIndex: number) => void;
+  shuffleAndPlay: (tracks: Track[]) => void;
   clearQueue: () => void;
   setProgress: (progress: number) => void;
   setDuration: (duration: number) => void;
@@ -142,8 +144,27 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
   addToQueue: (track: Track) =>
     set((state) => ({ queue: [...state.queue, track] })),
 
+  playNext: (track: Track) =>
+    set((state) => {
+      const insertAt = state.queueIndex + 1;
+      const newQueue = [...state.queue];
+      newQueue.splice(insertAt, 0, track);
+      return { queue: newQueue };
+    }),
+
   setQueue: (tracks: Track[], startIndex: number) =>
     set({ queue: tracks, queueIndex: startIndex }),
+
+  shuffleAndPlay: (tracks: Track[]) => {
+    // Fisher-Yates shuffle
+    const shuffled = [...tracks];
+    for (let i = shuffled.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+    }
+    set({ queue: shuffled, queueIndex: 0 });
+    get().playTrack(shuffled[0]);
+  },
 
   clearQueue: () => set({ queue: [], queueIndex: -1 }),
 

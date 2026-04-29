@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState, useRef } from 'react';
-import { ListPlus, ListMusic, ChevronRight } from 'lucide-react';
+import { ListPlus, ListMusic, ChevronRight, ListStart } from 'lucide-react';
 import { Track, usePlayerStore } from '@/hooks/usePlayerStore';
 import { toast } from 'sonner';
 
@@ -23,6 +23,7 @@ export default function TrackContextMenu({ track, x, y, onClose }: Props) {
   const [loading, setLoading] = useState(true);
   const ref = useRef<HTMLDivElement>(null);
   const addToQueue = usePlayerStore((s) => s.addToQueue);
+  const playNext = usePlayerStore((s) => s.playNext);
 
   // Close on outside click
   useEffect(() => {
@@ -51,6 +52,13 @@ export default function TrackContextMenu({ track, x, y, onClose }: Props) {
       .catch(() => {})
       .finally(() => setLoading(false));
   }, []);
+
+  const handlePlayNext = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    playNext(track);
+    toast.success('Playing next');
+    onClose();
+  };
 
   const handleAddToQueue = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -107,6 +115,13 @@ export default function TrackContextMenu({ track, x, y, onClose }: Props) {
       onClick={(e) => e.stopPropagation()}
       onMouseDown={(e) => e.stopPropagation()}
     >
+      <button
+        onClick={handlePlayNext}
+        className="w-full flex items-center gap-3 px-3 py-2.5 text-neutral-300 hover:text-white hover:bg-neutral-700 transition-colors"
+      >
+        <ListStart size={16} />
+        Play Next
+      </button>
       <button
         onClick={handleAddToQueue}
         className="w-full flex items-center gap-3 px-3 py-2.5 text-neutral-300 hover:text-white hover:bg-neutral-700 transition-colors"

@@ -24,6 +24,7 @@ declare global {
 export default function JioSaavnPlayer() {
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const loadTokenRef = useRef(0);
+  const transitionRef = useRef(false);
 
   const currentTrack = usePlayerStore((s) => s.currentTrack);
   const isPlaying = usePlayerStore((s) => s.isPlaying);
@@ -59,18 +60,24 @@ export default function JioSaavnPlayer() {
       usePlayerStore.getState().setProgress(audio.currentTime || 0);
     };
     const onPlay = () => {
+      transitionRef.current = false;
       usePlayerStore.getState().setIsPlaying(true);
       usePlayerStore.getState().setIsLoading(false);
     };
     const onPause = () => {
-      if (!audio.ended) usePlayerStore.getState().setIsPlaying(false);
+      // Ignore pause events fired during track transitions (source swap)
+      if (!audio.ended && !transitionRef.current) usePlayerStore.getState().setIsPlaying(false);
     };
     const onWaiting = () => usePlayerStore.getState().setIsLoading(true);
     const onCanPlay = () => usePlayerStore.getState().setIsLoading(false);
     const onEnded = () => {
-      usePlayerStore.getState().setIsPlaying(false);
-      usePlayerStore.getState().setProgress(0);
-      usePlayerStore.getState().nextTrack();
+      const store = usePlayerStore.getState();
+      const hasNext = store.queueIndex + 1 < store.queue.length;
+      if (!hasNext) {
+        store.setIsPlaying(false);
+      }
+      store.setProgress(0);
+      store.nextTrack();
     };
     const onError = () => {
       usePlayerStore.getState().setError('Playback failed. Try another track.');
@@ -105,6 +112,7 @@ export default function JioSaavnPlayer() {
     if (!audio || !streamUrl) return;
     const token = ++loadTokenRef.current;
 
+    transitionRef.current = true;
     usePlayerStore.getState().setIsLoading(true);
     usePlayerStore.getState().setError(null);
 

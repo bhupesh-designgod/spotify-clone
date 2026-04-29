@@ -1,11 +1,12 @@
 'use client';
 
 import { useState, useEffect, useCallback, use } from 'react';
-import { Play, Loader2, Trash2, GripVertical, ArrowLeft, Music2 } from 'lucide-react';
+import { Play, Loader2, Trash2, GripVertical, Music2, Shuffle, MoreHorizontal } from 'lucide-react';
 import { usePlayerStore, Track } from '@/hooks/usePlayerStore';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
+import TrackContextMenu from '@/components/TrackContextMenu';
 import {
   DndContext,
   closestCenter,
@@ -64,6 +65,7 @@ function SortableTrackRow({
   isThisPlaying,
   onPlay,
   onRemove,
+  onContextMenu,
 }: {
   pt: PlaylistTrack;
   index: number;
@@ -71,6 +73,7 @@ function SortableTrackRow({
   isThisPlaying: boolean;
   onPlay: () => void;
   onRemove: () => void;
+  onContextMenu: (e: React.MouseEvent) => void;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id: pt.id });
   const style = { transform: CSS.Transform.toString(transform), transition };
@@ -81,6 +84,7 @@ function SortableTrackRow({
       style={style}
       className={`group flex items-center px-2 sm:px-4 py-2 rounded-md cursor-pointer transition-colors duration-150 ${isCurrent ? 'bg-white/10' : 'hover:bg-white/5'}`}
       onClick={onPlay}
+      onContextMenu={onContextMenu}
     >
       <div className="hidden sm:flex w-8 justify-center" {...attributes} {...listeners}>
         <GripVertical size={14} className="text-neutral-600 opacity-0 group-hover:opacity-100 cursor-grab active:cursor-grabbing" />
@@ -108,9 +112,15 @@ function SortableTrackRow({
       </div>
       <button
         onClick={(e) => { e.stopPropagation(); onRemove(); }}
-        className="md:opacity-0 md:group-hover:opacity-100 text-neutral-400 hover:text-red-400 transition-all mx-1 sm:mx-2 p-1"
+        className="md:opacity-0 md:group-hover:opacity-100 text-neutral-400 hover:text-red-400 transition-all mx-1 p-1"
       >
         <Trash2 size={16} />
+      </button>
+      <button
+        onClick={(e) => { e.stopPropagation(); onContextMenu(e); }}
+        className="md:opacity-0 md:group-hover:opacity-100 transition-opacity text-neutral-400 hover:text-white mx-1 p-1"
+      >
+        <MoreHorizontal size={18} />
       </button>
       <div className="hidden sm:block w-16 text-right text-sm text-neutral-400">
         {formatDuration(pt.track_duration_ms / 1000)}
@@ -127,7 +137,8 @@ export default function PlaylistPage({ params }: { params: Promise<{ id: string 
   const [loading, setLoading] = useState(true);
   const [editingName, setEditingName] = useState(false);
   const [nameInput, setNameInput] = useState('');
-  const { currentTrack, isPlaying, playTrack, togglePlayPause, setQueue } = usePlayerStore();
+  const { currentTrack, isPlaying, playTrack, togglePlayPause, setQueue, shuffleAndPlay } = usePlayerStore();
+  const [contextMenu, setContextMenu] = useState<{ track: Track; x: number; y: number } | null>(null);
 
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
 
@@ -147,6 +158,18 @@ export default function PlaylistPage({ params }: { params: Promise<{ id: string 
     setQueue(tracks, index);
     playTrack(track);
   }, [currentTrack, togglePlayPause, setQueue, playlist, playTrack]);
+
+  const handlePlayAll = () => {
+    if (!playlist || playlist.tracks.length === 0) return;
+    const tracks = playlist.tracks.map(ptToTrack);
+    setQueue(tracks, 0);
+    playTrack(tracks[0]);
+  };
+
+  const handleShuffle = () => {
+    if (!playlist || playlist.tracks.length === 0) return;
+    shuffleAndPlay(playlist.tracks.map(ptToTrack));
+  };
 
   const handleRemoveTrack = async (pt: PlaylistTrack) => {
     if (!playlist) return;
@@ -197,6 +220,11 @@ export default function PlaylistPage({ params }: { params: Promise<{ id: string 
     } catch {}
   };
 
+  const handleContextMenu = (e: React.MouseEvent, track: Track) => {
+    e.preventDefault();
+    setContextMenu({ track, x: e.clientX, y: e.clientY });
+  };
+
   if (!session) {
     return <div className="flex items-center justify-center h-full text-neutral-500">Sign in to view playlists</div>;
   }
@@ -210,7 +238,7 @@ export default function PlaylistPage({ params }: { params: Promise<{ id: string 
   }
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col gap-6" onClick={(e) => { if (contextMenu && !(e.target as HTMLElement).closest('[data-context-menu]')) setContextMenu(null); }}>
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-end gap-4 sm:gap-6 pb-2 sm:pb-6">
         <div className="w-32 h-32 sm:w-48 sm:h-48 bg-gradient-to-br from-indigo-600 to-purple-800 rounded-lg flex items-center justify-center shadow-2xl flex-shrink-0">
@@ -243,6 +271,26 @@ export default function PlaylistPage({ params }: { params: Promise<{ id: string 
         </div>
       </div>
 
+      {/* Play All + Shuffle */}
+      {playlist.tracks.length > 0 && (
+        <div className="flex items-center gap-4">
+          <button
+            onClick={handlePlayAll}
+            className="w-12 h-12 sm:w-14 sm:h-14 bg-green-500 hover:bg-green-400 rounded-full flex items-center justify-center shadow-lg hover:scale-105 transition-all"
+            title="Play all"
+          >
+            <Play size={22} className="text-black fill-black translate-x-[1px]" />
+          </button>
+          <button
+            onClick={handleShuffle}
+            className="w-10 h-10 sm:w-12 sm:h-12 text-neutral-400 hover:text-white transition-colors flex items-center justify-center"
+            title="Shuffle play"
+          >
+            <Shuffle size={24} />
+          </button>
+        </div>
+      )}
+
       {/* Track List */}
       {playlist.tracks.length === 0 ? (
         <p className="text-neutral-500 text-center py-10">No tracks yet. Search for songs and add them!</p>
@@ -253,6 +301,7 @@ export default function PlaylistPage({ params }: { params: Promise<{ id: string 
               <div className="w-8" />
               <div className="w-10 text-center">#</div>
               <div className="flex-1">Title</div>
+              <div className="w-10" />
               <div className="w-10" />
               <div className="w-16 text-right">Duration</div>
             </div>
@@ -267,11 +316,22 @@ export default function PlaylistPage({ params }: { params: Promise<{ id: string 
                   isThisPlaying={isCurrent && isPlaying}
                   onPlay={() => handlePlay(pt, index)}
                   onRemove={() => handleRemoveTrack(pt)}
+                  onContextMenu={(e) => handleContextMenu(e, ptToTrack(pt))}
                 />
               );
             })}
           </SortableContext>
         </DndContext>
+      )}
+
+      {/* Context Menu */}
+      {contextMenu && (
+        <TrackContextMenu
+          track={contextMenu.track}
+          x={contextMenu.x}
+          y={contextMenu.y}
+          onClose={() => setContextMenu(null)}
+        />
       )}
     </div>
   );

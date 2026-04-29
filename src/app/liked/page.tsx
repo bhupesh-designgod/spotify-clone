@@ -1,10 +1,11 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { Heart, Play, Loader2 } from 'lucide-react';
+import { Heart, Play, Loader2, Shuffle, MoreHorizontal } from 'lucide-react';
 import { usePlayerStore, Track } from '@/hooks/usePlayerStore';
 import { useSession } from 'next-auth/react';
 import { toast } from 'sonner';
+import TrackContextMenu from '@/components/TrackContextMenu';
 
 function formatDuration(seconds: number) {
   const m = Math.floor(seconds / 60);
@@ -38,7 +39,8 @@ export default function LikedSongsPage() {
   const { data: session } = useSession();
   const [songs, setSongs] = useState<LikedSong[]>([]);
   const [loading, setLoading] = useState(true);
-  const { currentTrack, isPlaying, playTrack, togglePlayPause, isLoading, setQueue } = usePlayerStore();
+  const { currentTrack, isPlaying, playTrack, togglePlayPause, isLoading, setQueue, shuffleAndPlay } = usePlayerStore();
+  const [contextMenu, setContextMenu] = useState<{ track: Track; x: number; y: number } | null>(null);
 
   useEffect(() => {
     if (!session) { setLoading(false); return; }
@@ -57,6 +59,18 @@ export default function LikedSongsPage() {
     playTrack(track);
   }, [currentTrack, togglePlayPause, setQueue, songs, playTrack]);
 
+  const handlePlayAll = () => {
+    if (songs.length === 0) return;
+    const tracks = songs.map(likedSongToTrack);
+    setQueue(tracks, 0);
+    playTrack(tracks[0]);
+  };
+
+  const handleShuffle = () => {
+    if (songs.length === 0) return;
+    shuffleAndPlay(songs.map(likedSongToTrack));
+  };
+
   const handleUnlike = async (song: LikedSong) => {
     setSongs((prev) => prev.filter((s) => s.id !== song.id));
     try {
@@ -64,6 +78,11 @@ export default function LikedSongsPage() {
     } catch {
       toast.error('Failed to unlike');
     }
+  };
+
+  const handleContextMenu = (e: React.MouseEvent, track: Track) => {
+    e.preventDefault();
+    setContextMenu({ track, x: e.clientX, y: e.clientY });
   };
 
   if (!session) {
@@ -76,7 +95,7 @@ export default function LikedSongsPage() {
   }
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col gap-6" onClick={(e) => { if (contextMenu && !(e.target as HTMLElement).closest('[data-context-menu]')) setContextMenu(null); }}>
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-end gap-4 sm:gap-6 pb-2 sm:pb-6">
         <div className="w-32 h-32 sm:w-48 sm:h-48 bg-gradient-to-br from-purple-700 to-blue-400 rounded-lg flex items-center justify-center shadow-2xl">
@@ -90,6 +109,26 @@ export default function LikedSongsPage() {
         </div>
       </div>
 
+      {/* Play All + Shuffle */}
+      {songs.length > 0 && (
+        <div className="flex items-center gap-4">
+          <button
+            onClick={handlePlayAll}
+            className="w-12 h-12 sm:w-14 sm:h-14 bg-green-500 hover:bg-green-400 rounded-full flex items-center justify-center shadow-lg hover:scale-105 transition-all"
+            title="Play all"
+          >
+            <Play size={22} className="text-black fill-black translate-x-[1px]" />
+          </button>
+          <button
+            onClick={handleShuffle}
+            className="w-10 h-10 sm:w-12 sm:h-12 text-neutral-400 hover:text-white transition-colors flex items-center justify-center"
+            title="Shuffle play"
+          >
+            <Shuffle size={24} />
+          </button>
+        </div>
+      )}
+
       {loading ? (
         <div className="flex items-center justify-center py-20">
           <Loader2 size={32} className="animate-spin text-neutral-500" />
@@ -101,6 +140,7 @@ export default function LikedSongsPage() {
           <div className="hidden sm:flex px-4 py-2 text-xs uppercase tracking-wider text-neutral-500 border-b border-white/5 mb-1">
             <div className="w-12 text-center">#</div>
             <div className="flex-1">Title</div>
+            <div className="w-10" />
             <div className="w-10" />
             <div className="w-20 text-right pr-4">Duration</div>
           </div>
@@ -115,6 +155,7 @@ export default function LikedSongsPage() {
                 key={song.id}
                 className={`group flex items-center px-2 sm:px-4 py-2 rounded-md cursor-pointer transition-colors duration-150 ${isCurrent ? 'bg-white/10' : 'hover:bg-white/5'}`}
                 onClick={() => handlePlay(song, index)}
+                onContextMenu={(e) => handleContextMenu(e, track)}
               >
                 <div className="hidden sm:flex w-12 text-center justify-center items-center text-sm">
                   {isThisPlaying ? (
@@ -143,6 +184,12 @@ export default function LikedSongsPage() {
                 >
                   <Heart size={18} className="text-green-500 fill-green-500 hover:text-green-400" />
                 </button>
+                <button
+                  onClick={(e) => { e.stopPropagation(); handleContextMenu(e, track); }}
+                  className="md:opacity-0 md:group-hover:opacity-100 transition-opacity text-neutral-400 hover:text-white mx-1 p-1"
+                >
+                  <MoreHorizontal size={18} />
+                </button>
                 <div className="hidden sm:block w-20 text-right pr-4 text-sm text-neutral-400">
                   {formatDuration(track.durationMs / 1000)}
                 </div>
@@ -150,6 +197,16 @@ export default function LikedSongsPage() {
             );
           })}
         </div>
+      )}
+
+      {/* Context Menu */}
+      {contextMenu && (
+        <TrackContextMenu
+          track={contextMenu.track}
+          x={contextMenu.x}
+          y={contextMenu.y}
+          onClose={() => setContextMenu(null)}
+        />
       )}
     </div>
   );
